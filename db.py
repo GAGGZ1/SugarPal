@@ -1,8 +1,8 @@
 # db.py
 from flask_pymongo import PyMongo
 
-mongo = None
+mongo = PyMongo()
 
-def init_db(app):
-    global mongo
-    mongo = PyMongo(app)
+# def init_db(app):
+#     global mongo
+#     mongo = PyMongo(app)

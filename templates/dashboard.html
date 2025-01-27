@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SugarPal</title>
+</head>
+<body>
+    <h1>Welcome, {{ username }}!</h1>
+
+    <h2>Add Blood Sugar Reading</h2>
+    <form action="{{ url_for('routes.add_reading') }}" method="POST">
+        <label for="reading">Blood Sugar Value:</label>
+        <input type="text" id="reading" name="reading" required>
+        <br><br>
+        <button type="submit">Add Reading</button>
+    </form>
+
+    <h2>Log Meal</h2>
+    <form action="{{ url_for('routes.add_meal') }}" method="POST">
+        <label for="meal">Meal Description:</label>
+        <input type="text" id="meal" name="meal" required>
+        <br><br>
+
+        <label for="calories">Calories:</label>
+        <input type="number" id="calories" name="calories" required>
+        <br><br>
+
+        <button type="submit">Log Meal</button>
+    </form>
+
+    <h2>Trends</h2>
+    <button type="button" onclick="getTrends()">Get Trends</button>
+
+    <!-- Container to display trends -->
+    <div id="trendsContainer" style="display: none;">
+        <ul id="trendsList"></ul>
+    </div>
+
+    <h2>Generate Weekly Report</h2>
+    <form action="{{ url_for('routes.generate_report') }}" method="GET">
+        <button type="submit">Generate Report</button>
+    </form>
+
+    <p><a href="{{ url_for('routes.logout') }}">Logout</a></p>
+
+    <!-- Blood Sugar Alert Notification Form -->
+    <h2>Send Blood Sugar Alert Notification</h2>
+    <form id="notificationForm">
+        <label for="blood_sugar_value">Enter Blood Sugar Level:</label>
+        <input type="number" id="blood_sugar_value" name="blood_sugar_value" required>
+        <br><br>
+
+        <button type="button" onclick="sendNotification()">Send Notification</button>
+    </form>
+
+    <script>
+        // Get the user ID from the Flask template context
+        const currentUserId = "{{ user_id }}";  // Flask will pass current_user.id here
+
+        function getTrends() {
+            fetch('/get_trends', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const trendsContainer = document.getElementById('trendsContainer');
+                const trendsList = document.getElementById('trendsList');
+
+                // Clear the existing trends list
+                trendsList.innerHTML = '';
+
+                if (data.trends.length > 0) {
+                    // Display trends if available
+                    data.trends.forEach(trend => {
+                        const li = document.createElement('li');
+                        li.textContent = `${trend.timestamp}: ${trend.value} mg/dL`;
+                        trendsList.appendChild(li);
+                    });
+                    trendsContainer.style.display = 'block';  // Show the trends container
+                } else {
+                    // Display message if no trends found
+                    const li = document.createElement('li');
+                    li.textContent = "No trends available.";
+                    trendsList.appendChild(li);
+                    trendsContainer.style.display = 'block';  // Show the trends container
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function sendNotification() {
+            const blood_sugar_value = document.getElementById('blood_sugar_value').value;
+
+            fetch('/send_notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: currentUserId, blood_sugar_value })
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))  // Show success message
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

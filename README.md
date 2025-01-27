@@ -54,3 +54,40 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Thanks to the open-source community for making tools available to make this project possible.
 
 ```
+
+
+---
+
+# Diabetes Tool
+
+The **Diabetes Tool** project is designed to help children easily manage their blood sugar levels. It provides a user-friendly interface for tracking blood sugar readings, monitoring trends, and receiving notifications based on health data to ensure children stay within safe blood sugar ranges.
+
+## Key Features
+
+### Blood Sugar Tracking
+- Kids can log their blood sugar levels at different times of the day (e.g., after meals, before exercise).
+- Visual graphs display trends over time, making it easier for children to understand their health.
+
+### Diet & Exercise Guidance
+- The tool suggests meal plans and snacks to help manage blood sugar levels, tailored to the child's age and health profile.
+- Exercise routines are recommended to keep blood sugar within safe levels.
+
+### Alerts & Notifications
+- The tool sends notifications when blood sugar readings are too high or too low, advising actions like eating or exercising.
+- Customizable reminders for taking medication, measuring blood sugar, or eating at regular intervals.
+
+### Health Data Storage
+- Blood sugar levels, meal logs, and exercise routines are securely stored.
+- Parents or guardians can access the data to monitor the child's health and take necessary actions.
+
+### User-Friendly Interface
+- Colorful, engaging visuals designed for children.
+- Simple inputs like clicking buttons or using voice commands to record data.
+
+### Health Insights & Reports
+- Periodic reports summarizing the child's blood sugar levels, meal patterns, and exercise habits.
+- Reports can be shared with healthcare professionals for better monitoring and care.
+
+### Personalized Experience
+- Customizable settings based on the child's age, medical history, and current treatment plans.
+

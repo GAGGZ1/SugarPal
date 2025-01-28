@@ -4,6 +4,10 @@ from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import mongo
 from models import AuthUser
+import plotly
+import plotly.graph_objs as go
+import plotly.io as pio
+import json
 
 routes = Blueprint('routes', __name__)
 
@@ -188,12 +192,43 @@ def send_push_notification(user_id, message):
     print(f"Sent notification to {user_id}: {message}")
 
 # Generate report (handles both form and API)
+# @routes.route('/generate_report', methods=['GET'])
+# @login_required
+# def generate_report():
+#     blood_sugar = mongo.db.blood_sugar_readings
+#     one_week_ago = datetime.now() - timedelta(days=7)
+#     recent_readings = list(blood_sugar.find({'timestamp': {'$gte': one_week_ago}, 'user_id': current_user.id}))
+#
+#     if not recent_readings:
+#         message = "No readings in the past week."
+#         if request.is_json:
+#             return jsonify({"message": message}), 404
+#         else:
+#             return render_template("report.html", message=message)
+#
+#     total_value = sum([float(reading['value']) for reading in recent_readings])
+#     average_value = total_value / len(recent_readings)
+#
+#     if request.is_json:
+#         return jsonify({
+#             "message": "Weekly Report Generated",
+#             "average_blood_sugar": average_value,
+#             "total_readings": len(recent_readings)
+#         }), 200
+#     else:
+#         return render_template("report.html",
+#                                message="Weekly Report Generated",
+#                                average_blood_sugar=average_value,
+#                                total_readings=len(recent_readings))
+
+
 @routes.route('/generate_report', methods=['GET'])
 @login_required
 def generate_report():
     blood_sugar = mongo.db.blood_sugar_readings
     one_week_ago = datetime.now() - timedelta(days=7)
     recent_readings = list(blood_sugar.find({'timestamp': {'$gte': one_week_ago}, 'user_id': current_user.id}))
+    print(f"Recent Readings Retrieved: {recent_readings}")
 
     if not recent_readings:
         message = "No readings in the past week."
@@ -202,17 +237,184 @@ def generate_report():
         else:
             return render_template("report.html", message=message)
 
+    # Calculate total and average
     total_value = sum([float(reading['value']) for reading in recent_readings])
     average_value = total_value / len(recent_readings)
 
+    # Prepare data for Plotly graph
+    timestamps = [reading['timestamp'].strftime("%Y-%m-%d %H:%M:%S") for reading in recent_readings]
+    values = [float(reading['value']) for reading in recent_readings]
+
+    # # Create Plotly graph
+    # graph = go.Figure()
+    # graph.add_trace(go.Scatter(x=timestamps, y=values, mode='lines+markers', name='Blood Sugar'))
+    # graph.update_layout(
+    #     title="Blood Sugar Trends (Past Week)",
+    #     xaxis_title="Timestamp",
+    #     yaxis_title="Blood Sugar Level (mg/dL)",
+    #     template="plotly_white"
+    # )
+    # graph_html = pio.to_html(graph, full_html=False)
+    hardcoded_timestamps = ["2025-01-21 12:00:00", "2025-01-22 12:00:00", "2025-01-23 12:00:00"]
+    hardcoded_values = [120, 130, 125]
+
+    graph = go.Figure()
+    graph.add_trace(go.Scatter(x=hardcoded_timestamps, y=hardcoded_values, mode='lines+markers', name='Blood Sugar'))
+    graph.update_layout(
+        title="Blood Sugar Trends",
+        xaxis_title="Timestamp",
+        yaxis_title="Blood Sugar Level (mg/dL)",
+        template="plotly_white"
+    )
+    graph_html = pio.to_html(graph, full_html=False)
+
+    # Log values for debugging
+    print(f"Recent Readings: {recent_readings}")
+    print(f"Total Value: {total_value}, Average Value: {average_value}")
+
+    # Return JSON response or render the template
     if request.is_json:
         return jsonify({
             "message": "Weekly Report Generated",
             "average_blood_sugar": average_value,
-            "total_readings": len(recent_readings)
+            "total_readings": len(recent_readings),
+            "graph_html": graph_html
         }), 200
     else:
         return render_template("report.html",
                                message="Weekly Report Generated",
                                average_blood_sugar=average_value,
-                               total_readings=len(recent_readings))
+                               total_readings=len(recent_readings),
+                               graph_html=graph_html)
+
+
+
+#
+# @routes.route('/blood-sugar-chart')
+# def blood_sugar_chart():
+#     # Sample data: Blood sugar readings for a week
+#     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+#     readings = [110, 120.98, 130, 115, 75, 135, 125]
+#     data = list(zip(days, readings))
+#
+#     # Create a Plotly graph
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=days, y=readings, mode='lines+markers', name='Blood Sugar'))
+#     fig.update_layout(
+#         title='Blood Sugar Readings Over a Week',
+#         xaxis_title='Day of the Week',
+#         yaxis_title='Blood Sugar (mg/dL)',
+#         template='plotly_dark'  # Optional: Use a dark theme
+#     )
+#
+#     # Convert the graph to JSON
+#     graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+#
+#     # Pass both the days and readings to the template
+#     # return render_template('chart.html', graph_json=graph_json, days=days, readings=readings)
+#     return render_template('chart.html', graph_json=graph_json, data=data)
+
+
+@routes.route('/blood-sugar-chart')
+@login_required
+def blood_sugar_chart():
+    # Get the current user (Replace this with your actual user logic)
+    user_id = current_user.id
+
+    # Get the readings from the last 7 days for the current user
+    one_week_ago = datetime.now() - timedelta(days=7)
+    blood_sugar = mongo.db.blood_sugar_readings
+    recent_readings = list(blood_sugar.find({'timestamp': {'$gte': one_week_ago}, 'user_id': user_id}))
+
+    print(f"Recent Readings Retrieved: {recent_readings}")
+
+    # Extract the days (timestamps) and blood sugar values
+    days = [reading['timestamp'].strftime('%Y-%m-%d %H:%M:%S') for reading in recent_readings]
+    readings = [float(reading['value']) for reading in recent_readings]
+
+    # Combine the days and readings into a list of tuples
+    data = list(zip(days, readings))
+
+    # Create a Plotly graph
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=days, y=readings, mode='lines+markers', name='Blood Sugar'))
+    fig.update_layout(
+        title='Blood Sugar Readings Over Time',
+        xaxis_title='Timestamp',
+        yaxis_title='Blood Sugar (mg/dL)',
+        template='plotly_dark'  # Optional: Use a dark theme
+    )
+
+    # Convert the graph to JSON
+    graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+    # Pass the combined data to the template
+    return render_template('chart.html', graph_json=graph_json, data=data)
+
+#
+# @routes.route('/meal_chart')
+# def meal_chart():
+#     # Get meal data from the database
+#     meal_collection = mongo.db.meals
+#     one_week_ago = datetime.now() - timedelta(days=7)  # Adjust this based on your needs
+#     user_id = current_user.id  # Replace with your logged-in user's ID
+#
+#     recent_meals = list(meal_collection.find({'timestamp': {'$gte': one_week_ago}, 'user_id': user_id}))
+#     print(recent_meals)
+#     # Prepare data for plotting
+#     timestamps = [meal['timestamp'] for meal in recent_meals]
+#     calories = [float(meal['calories']) for meal in recent_meals]
+#     print(timestamps)
+#     print(calories)
+#     # Create a Plotly graph
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=timestamps, y=calories, mode='lines+markers', name='Calories Consumed'))
+#     fig.update_layout(
+#         title='Calories Consumed Over Time',
+#         xaxis_title='Timestamp',
+#         yaxis_title='Calories',
+#         template='plotly_dark'  # Optional: Use a dark theme
+#     )
+#
+#     # Convert the graph to JSON
+#     graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+#
+#     return render_template('meal_chart.html', graph_json=graph_json)
+#
+
+
+
+
+
+
+@routes.route('/meal_chart_pie')
+def meal_chart():
+    # Get the current date and calculate one week ago
+    one_week_ago = datetime.now() - timedelta(days=7)
+
+    # Retrieve meals data from the 'meals' collection for the last 7 days (replace with actual MongoDB collection)
+    meals_collection = mongo.db.meals
+    user_id = current_user.id  # Ensure you have user_id in the session
+    recent_meals = list(meals_collection.find({'timestamp': {'$gte': one_week_ago}, 'user_id': user_id}))
+
+    # Data processing: count the occurrences of each food item
+    food_items_count = {}
+    for meal in recent_meals:
+        food_item = meal['food_items']
+        if food_item in food_items_count:
+            food_items_count[food_item] += 1
+        else:
+            food_items_count[food_item] = 1
+
+    # Prepare data for the pie chart
+    food_items = list(food_items_count.keys())
+    counts = list(food_items_count.values())
+
+    # Create a Plotly Pie chart
+    fig = go.Figure(data=[go.Pie(labels=food_items, values=counts, hole=0.3)])  # Pie chart with a hole (donut chart)
+    fig.update_layout(title='Food Item Distribution in the Last Week')
+
+    # Convert the graph to JSON
+    graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+    return render_template('meal_chart_pie.html', graph_json=graph_json)

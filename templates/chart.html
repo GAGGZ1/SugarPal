@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Sugar Chart</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Blood Sugar Readings Over a Week</h1>
+
+    <!-- Display the chart -->
+    <div id="chart"></div>
+
+
+
+    <!-- Display the readings in a table -->
+    <h2>Blood Sugar Table:</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Blood Sugar (mg/dL)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for day, reading in data %}
+                <tr>
+                    <td>{{ day }}</td>
+                    <td>{{ reading }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="{{ url_for('routes.dashboard') }}">Back to Dashboard</a></p>
+
+
+    <script type="text/javascript">
+        var graphData = {{ graph_json | safe }};
+        Plotly.newPlot('chart', graphData);
+    </script>
+</body>
+</html>

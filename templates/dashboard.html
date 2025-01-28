@@ -4,14 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SugarPal</title>
+    <style>
+
+        #flashMessage {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            background-color: red;
+            z-index: 1000;
+        }
+
+        #trendsContainer {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <h1>Welcome, {{ username }}!</h1>
 
     <h2>Add Blood Sugar Reading</h2>
-    <form action="{{ url_for('routes.add_reading') }}" method="POST">
+    <form id="readingForm" action="{{ url_for('routes.add_reading') }}" method="POST">
         <label for="reading">Blood Sugar Value:</label>
-        <input type="text" id="reading" name="reading" required>
+        <input type="number" id="reading" name="reading" required min="0" max="500" step="0.1">
         <br><br>
         <button type="submit">Add Reading</button>
     </form>
@@ -38,26 +57,60 @@
     </div>
 
     <h2>Generate Weekly Report</h2>
-    <form action="{{ url_for('routes.generate_report') }}" method="GET">
+    <form action="{{ url_for('routes.blood_sugar_chart') }}" method="GET">
         <button type="submit">Generate Report</button>
     </form>
 
     <p><a href="{{ url_for('routes.logout') }}">Logout</a></p>
 
-    <!-- Blood Sugar Alert Notification Form -->
-    <h2>Send Blood Sugar Alert Notification</h2>
-    <form id="notificationForm">
-        <label for="blood_sugar_value">Enter Blood Sugar Level:</label>
-        <input type="number" id="blood_sugar_value" name="blood_sugar_value" required>
-        <br><br>
-
-        <button type="button" onclick="sendNotification()">Send Notification</button>
-    </form>
+    <!-- Flash message for blood sugar alert -->
+    <div id="flashMessage">Blood Sugar Value Alert!</div>
 
     <script>
-        // Get the user ID from the Flask template context
-        const currentUserId = "{{ user_id }}";  // Flask will pass current_user.id here
+        // Flash message for warning
+        function showFlashMessage(message) {
+            const flashMessage = document.getElementById('flashMessage');
+            flashMessage.textContent = message;
+            flashMessage.style.display = 'block';
 
+            // Store the flash message in session storage
+            sessionStorage.setItem('flashMessage', message);
+
+            // Hide the flash message after 10 seconds
+            setTimeout(() => {
+                flashMessage.style.display = 'none';
+            }, 10000);  // 10000ms = 10 seconds
+        }
+
+        // Check if there's a flash message stored in session storage
+        window.onload = function() {
+            const flashMessage = sessionStorage.getItem('flashMessage');
+            if (flashMessage) {
+                showFlashMessage(flashMessage);
+                // Remove flash message from session storage after displaying it
+                sessionStorage.removeItem('flashMessage');
+            }
+        }
+
+        // Add event listener for the "Add Reading" button
+        const readingForm = document.getElementById('readingForm');
+        readingForm.addEventListener('submit', function(event) {
+            const readingValue = document.getElementById('reading').value;
+
+            // Show flash message with alert
+            if (readingValue > 200) {  // You can adjust this value based on your threshold for a warning
+                showFlashMessage('Blood Sugar Level is high! Please monitor closely.');
+            } else {
+                showFlashMessage('Blood Sugar Level is within normal range.');
+            }
+
+            // Allow the form to submit
+            setTimeout(function() {
+                readingForm.submit();  // Submits the form after showing the flash message
+            }, 0);  // Form will be submitted immediately after the flash message shows
+        });
+
+        // Fetch trends from backend
         function getTrends() {
             fetch('/get_trends', {
                 method: 'GET',
@@ -89,21 +142,6 @@
                     trendsContainer.style.display = 'block';  // Show the trends container
                 }
             })
-            .catch(error => console.error('Error:', error));
-        }
-
-        function sendNotification() {
-            const blood_sugar_value = document.getElementById('blood_sugar_value').value;
-
-            fetch('/send_notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ user_id: currentUserId, blood_sugar_value })
-            })
-            .then(response => response.json())
-            .then(data => alert(data.message))  // Show success message
             .catch(error => console.error('Error:', error));
         }
     </script>
